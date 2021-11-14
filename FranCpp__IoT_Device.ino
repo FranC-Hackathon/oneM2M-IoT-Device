@@ -10,7 +10,7 @@ char* WIFI_PSWD = "poulette46"; //"esculum7-vehementem-parturio?-punctare"; 	// 
 int WIFI_DELAY  = 100; //ms
 
 // oneM2M : CSE params
-String CSE_IP      = "192.168.1.3"; //Configure here the IP Address of your oneM2M CSE
+String CSE_IP      = "192.168.7.76"; //Configure here the IP Address of your oneM2M CSE
 int   CSE_HTTP_PORT = 8080;
 String CSE_NAME    = "cse-in"; //"CseName";
 String CSE_RELEASE = "3"; //Configure here the release supported by your oneM2M CSE
@@ -50,6 +50,19 @@ int GREEN_23_PIN = 12; // PIN for the LED
 int GREEN_4_PIN = 13; // PIN for the LED
 
 int GREEN_5_PIN = 16; // PIN for the LED
+
+//stateMachine
+#define State0 0
+#define BothRED1 1
+#define FirstRoadGreen 2
+#define BothRED2 3
+#define SecondRoadGreen 4
+#define EmergencyVehicle 5
+
+//sensors
+bool BP = false;
+bool H1 = false;
+bool H2 = false;
 
 // MISC
 int SERIAL_SPEED  = 115200;
@@ -282,7 +295,7 @@ void init_IO() {
  
  
   pinMode(BTN_PIN, INPUT);
-  pinMode(HALL_SENSOR_2_PIN, INPUT); 
+  pinMode(HALL_SENSOR_1_PIN, INPUT); 
   pinMode(HALL_SENSOR_2_PIN, INPUT); 
   
   pinMode(RED_1_PIN, OUTPUT); 
@@ -373,43 +386,17 @@ void task_HTTPServer() {
   }
 }
 void handle_HTTPMessage(){
-  if (context != "") {
-      if (context == "RedLed1Actuator") {
-	    command_redled1(command);
-        task_redled1(command);
-      }
-      else
-        if (context == "RedLed23Actuator") {
-		  command_redled23(command);
-          task_redled23(command);
-		}
-		else
-		  if (context == "RedLed4Actuator") {
-		    command_redled4(command);
-            task_redled4(command);
-		  }
-		  else
-	        if (context == "GreenLed1Actuator") {
-		      command_greenled1(command);
-              task_greenled1(command);
-			}
-		    else
-	          if (context == "GreenLed23Actuator") {
-		        command_greenled23(command);
-                task_greenled23(command);
-			  }
-		      else
-	            if (context == "GreenLed4Actuator") {
-		          command_greenled4(command);
-                  task_greenled4(command);
-				}
-		        else
-	              if (context == "GreenLed5Actuator") {
-		            command_greenled5(command);
-                    task_greenled5(command);
-				  }
-		          else
-  		            Serial.println("The target AE does not exist ! ");
+   if (context != "") 
+      {
+         if (context == "EspActuator") 
+         {
+          command_esp(command);
+           task_esp(command);
+         }
+			 }
+	 else
+  {
+  		 Serial.println("The target AE does not exist ! ");
   }
   // reset "command" and "context" variables for future received requests
   context = "";
@@ -472,7 +459,7 @@ void init_hall2(){
 }
 void task_hall2(){
   int sensorValue;
-  sensorValue = digitalRead(HALL_SENSOR_1_PIN);
+  sensorValue = digitalRead(HALL_SENSOR_2_PIN);
   #ifdef DEBUG
 	Serial.print("Sending data : Hall2Sensor value = ");
 	Serial.println(sensorValue);
@@ -484,8 +471,43 @@ void task_hall2(){
 void command_hall2(String cmd){
 	
 }
-	
+
+ // Code for the actuator esp
+void init_esp() {
+  String initialDescription = "Name=ESP | Location = all";
+  String initialData = "nothing_active";
+  originator = "Cae-ESP";
+  registerModule("ESP", true, initialDescription, initialData);
+}
+void task_esp(String cmd) {
+  originator = "Cae-ESP";
+  createCI("ESP", DATA_CNT_NAME, cmd);  
+}
+void command_esp(String cmd) {
+  if (cmd == "BP") {
+    #ifdef DEBUG
+      Serial.println("BP active");
+    #endif
+    BP = true; 
+   // mode1,mode2,mode3
+  }
+  else
+    if (cmd == "H1") {
+      #ifdef DEBUG
+        Serial.println("Hall1 active");
+      #endif
+      H1 = true;
+    }
+   else if (cmd == "H2") {
+      #ifdef DEBUG
+        Serial.println("Hall2 active");
+      #endif
+      H2 = true;
+   }
+}
+
 // Code for the actuator Red Led 1
+/*
 void init_redled1() {
   String initialDescription = "Name=RedLed1Actuator | Location = TrafficLight1";
   String initialData = "switchOff";
@@ -496,6 +518,8 @@ void task_redled1(String cmd) {
   originator = "Cae-RedLed1Actuator";
   createCI("RedLed1Actuator", DATA_CNT_NAME, cmd);  
 }
+//switchon -> mode1
+
 void command_redled1(String cmd) {
   if (cmd == "switchOn") {
     #ifdef DEBUG
@@ -510,175 +534,13 @@ void command_redled1(String cmd) {
       #endif
       digitalWrite(RED_1_PIN, LOW);
     }
-}
+}*/
 
-// Code for the actuator Red Leds 2-3
-void init_redled23() {
-  String initialDescription = "Name=RedLed23Actuator | Location = TrafficLight23";
-  String initialData = "switchOff";
-  originator = "Cae-RedLed1Actuator";
-  registerModule("RedLed23Actuator", true, initialDescription, initialData);
-}
-void task_redled23(String cmd) {
-  originator = "Cae-RedLed23Actuator";
-  createCI("RedLed23Actuator", DATA_CNT_NAME, cmd);  
-}
-void command_redled23(String cmd) {
-  if (cmd == "switchOn") {
-    #ifdef DEBUG
-      Serial.println("Switching on the Red LEDs 2-3 ...");
-    #endif
-    digitalWrite(RED_23_PIN, HIGH);
-  }
-  else
-    if (cmd == "switchOff") {
-      #ifdef DEBUG
-        Serial.println("Switching off the Red LEDs 2-3 ...");
-      #endif
-      digitalWrite(RED_23_PIN, LOW);
-    }
-}
-
-// Code for the actuator Red Led 4
-void init_redled4() {
-  String initialDescription = "Name=RedLed41Actuator | Location = TrafficLight4";
-  String initialData = "switchOff";
-  originator = "Cae-RedLed4Actuator";
-  registerModule("RedLed4Actuator", true, initialDescription, initialData);
-}
-void task_redled4(String cmd) {
-  originator = "Cae-RedLed4Actuator";
-  createCI("RedLed4Actuator", DATA_CNT_NAME, cmd);  
-}
-void command_redled4(String cmd) {
-  if (cmd == "switchOn") {
-    #ifdef DEBUG
-      Serial.println("Switching on the Red LED 4 ...");
-    #endif
-    digitalWrite(RED_4_PIN, HIGH);
-  }
-  else
-    if (cmd == "switchOff") {
-      #ifdef DEBUG
-        Serial.println("Switching off the Red LED 4 ...");
-      #endif
-      digitalWrite(RED_4_PIN, LOW);
-    }
-}
-
-// Code for the actuator Green Led 1
-void init_greenled1() {
-  String initialDescription = "Name=GreenLed1Actuator | Location = TrafficLight1";
-  String initialData = "switchOff";
-  originator = "Cae-GreenLed1Actuator";
-  registerModule("GreenLed1Actuator", true, initialDescription, initialData);
-}
-void task_greenled1(String cmd) {
-  originator = "Cae-GreenLed1Actuator";
-  createCI("GreenLed1Actuator", DATA_CNT_NAME, cmd);  
-}
-void command_greenled1(String cmd) {
-  if (cmd == "switchOn") {
-    #ifdef DEBUG
-      Serial.println("Switching on the Green LED 1 ...");
-    #endif
-    digitalWrite(GREEN_1_PIN, HIGH);
-  }
-  else
-    if (cmd == "switchOff") {
-      #ifdef DEBUG
-        Serial.println("Switching off the Green LED 1 ...");
-      #endif
-      digitalWrite(GREEN_1_PIN, LOW);
-    }
-}
-
-// Code for the actuator Green Leds 2-3
-void init_greenled23() {
-  String initialDescription = "Name=GreenLed23Actuator | Location = TrafficLight23";
-  String initialData = "switchOff";
-  originator = "Cae-GreenLed23Actuator";
-  registerModule("GreenLed23Actuator", true, initialDescription, initialData);
-}
-void task_greenled23(String cmd) {
-  originator = "Cae-GreenLed23Actuator";
-  createCI("GreenLed23Actuator", DATA_CNT_NAME, cmd);  
-}
-void command_greenled23(String cmd) {
-  if (cmd == "switchOn") {
-    #ifdef DEBUG
-      Serial.println("Switching on the Green LEDs 2-3 ...");
-    #endif
-    digitalWrite(GREEN_23_PIN, HIGH);
-  }
-  else
-    if (cmd == "switchOff") {
-      #ifdef DEBUG
-        Serial.println("Switching off the Green LEDs 2-3 ...");
-      #endif
-      digitalWrite(GREEN_23_PIN, LOW);
-    }
-}
-
-// Code for the actuator Green Led 4
-void init_greenled4() {
-  String initialDescription = "Name=GreenLed4Actuator | Location = TrafficLight4";
-  String initialData = "switchOff";
-  originator = "Cae-GreenLed4Actuator";
-  registerModule("GreenLed4Actuator", true, initialDescription, initialData);
-}
-void task_greenled4(String cmd) {
-  originator = "Cae-GreenLed4Actuator";
-  createCI("GreenLed4Actuator", DATA_CNT_NAME, cmd);  
-}
-void command_greenled4(String cmd) {
-  if (cmd == "switchOn") {
-    #ifdef DEBUG
-      Serial.println("Switching on the Green LED 4 ...");
-    #endif
-    digitalWrite(GREEN_4_PIN, HIGH);
-  }
-  else
-    if (cmd == "switchOff") {
-      #ifdef DEBUG
-        Serial.println("Switching off the Green LED 4 ...");
-      #endif
-      digitalWrite(GREEN_4_PIN, LOW);
-    }
-}
-
-// Code for the actuator Green Led 5
-void init_greenled5() {
-  String initialDescription = "Name=GreenLed5Actuator | Location = SideWalk TrafficLight";
-  String initialData = "switchOff";
-  originator = "Cae-GreenLed5Actuator";
-  registerModule("GreenLed5Actuator", true, initialDescription, initialData);
-}
-void task_greenled5(String cmd) {
-  originator = "Cae-GreenLed5Actuator";
-  createCI("GreenLed5Actuator", DATA_CNT_NAME, cmd);  
-}
-void command_greenled5(String cmd) {
-  if (cmd == "switchOn") {
-    #ifdef DEBUG
-      Serial.println("Switching on the Green LED 5 ...");
-    #endif
-    digitalWrite(GREEN_5_PIN, HIGH);
-  }
-  else
-    if (cmd == "switchOff") {
-      #ifdef DEBUG
-        Serial.println("Switching off the Green LED 5 ...");
-      #endif
-      digitalWrite(GREEN_5_PIN, LOW);
-    }
-}
 
 
 void setup() {
   // intialize the serial liaison
-  Serial.begin(SERIAL_SPEED);
-
+    Serial.begin(SERIAL_SPEED);
   // configure sensors and actuators HW
   init_IO();
 
@@ -689,20 +551,143 @@ void setup() {
   init_HTTPServer();
 
   // register sensors and actuators
-  /*init_button();
+  init_button();
   init_hall1();
   init_hall2();
-  init_redled1();
-  init_redled23();
-  init_redled4();
-  init_greenled1();
-  init_greenled23();
-  init_greenled4();
-  init_greenled5();*/
+  init_esp();
+}
+
+void FiniteStateMachine() {
+  #ifdef DEBUG
+    Serial.println("begin MAE");
+  #endif
+  static uint8_t currentState = State0;
+  static uint32_t t0 = 0;  
+  //default value of each light
+  digitalWrite(RED_1_PIN,LOW); 
+  digitalWrite(RED_23_PIN,LOW);
+  digitalWrite(RED_4_PIN,LOW);
+  digitalWrite(GREEN_1_PIN,LOW);
+  digitalWrite(GREEN_23_PIN,LOW);
+  digitalWrite(GREEN_4_PIN,LOW);
+  digitalWrite(GREEN_5_PIN,LOW);
+
+  switch (currentState)
+  {
+    case State0: //initialization
+      //all lights are red
+      digitalWrite(RED_1_PIN,HIGH); 
+      digitalWrite(RED_23_PIN,HIGH);
+      digitalWrite(RED_4_PIN,HIGH);
+      t0=millis();      
+      //setTimeout(HandleTimer, 1000); //set up of 1s timer
+      currentState = BothRED1; //can directly go to the first state, only a timer set up state
+    break;
+
+    case BothRED1:
+      //all lights are red
+      digitalWrite(RED_1_PIN,HIGH);
+      digitalWrite(RED_23_PIN,HIGH);
+      digitalWrite(RED_4_PIN,HIGH);
+      if ((H1 == true) || (H2 == true)) { //if an emergency vehicle passed through one of the sensor
+        currentState = EmergencyVehicle;
+      }
+      else 
+        if ( (millis() - t0 > 1000) ) { //when 1s timer is over
+          currentState = FirstRoadGreen; //next state : first road lights are green
+          t0 = millis(); //timer_start(3000); //set up 3s timer
+        }
+    break;
+
+    case FirstRoadGreen:
+      //only first road lights are green
+      digitalWrite(GREEN_1_PIN,HIGH);
+      digitalWrite(GREEN_4_PIN,HIGH);
+      digitalWrite(RED_23_PIN,HIGH);
+      if ((H1 == true) || (H2 == true)) { //if an emergency vehicle passed through one of the sensor
+        currentState = EmergencyVehicle;
+      }
+      else 
+        if ( (millis() - t0 > 3000) ) { //when 3s timer is over
+          currentState = BothRED2; //next state : all lights are red
+          t0 = millis(); //set up 1s timer
+        }
+    break;
+
+    case BothRED2:
+      //all lights are red
+      digitalWrite(RED_1_PIN,HIGH);
+      digitalWrite(RED_23_PIN,HIGH);
+      digitalWrite(RED_4_PIN,HIGH);
+      if ((H1 == true) || (H2 == true)) { //if an emergency vehicle passed through one of the sensor
+        currentState = EmergencyVehicle;
+      }
+      else 
+        if ( (millis() - t0 > 1000) ) { //when 1s timer is over
+          currentState = SecondRoadGreen; //next state : only second road lights are green
+          t0 = millis();
+          }
+    break;
+
+    case SecondRoadGreen: 
+      //only second road and pedestrians lights are green
+      digitalWrite(RED_1_PIN,HIGH);
+      digitalWrite(RED_4_PIN,HIGH);
+      digitalWrite(GREEN_23_PIN,HIGH);
+      digitalWrite(GREEN_5_PIN,HIGH);
+      if ((H1 == true) || (H2 == true)) {  //if an emergency vehicle passed through one of the sensor
+        currentState = EmergencyVehicle;
+      }
+      else 
+        if ( BP == false ) {
+          if (millis() - t0 > 3000){
+            currentState = BothRED1; //next state : all lights are red
+            t0 = millis();  
+          }
+        else if (BP==true){
+            if (millis() - t0 > 6000){
+            currentState = BothRED1; //next state : all lights are red 
+            t0 = millis();
+        }
+          //when 3s or 6s timer is over 
+        }
+    break;
+
+    case EmergencyVehicle: //When an emergency vehicle passed through one of the sensor
+      
+      if ((H1 == true) && (H2 == false)) { //Emergency Vehicle is coming from the same road as the number 1 light 
+        //only number 1 light is green
+        digitalWrite(GREEN_1_PIN,HIGH); 
+        digitalWrite(RED_23_PIN,HIGH);
+        digitalWrite(RED_4_PIN,HIGH);
+      } 
+      else
+        if (H2 == true) { //Emergency Vehicle is coming from the same road as the number 4 light 
+          // only number 4 light in green
+          digitalWrite(GREEN_4_PIN,HIGH); 
+          digitalWrite(RED_1_PIN,HIGH);
+          digitalWrite(RED_23_PIN,HIGH);
+        }
+    
+      if ((H1 == true) && (H2 == true)) { //Emergency Vehicle totally crossed the road //
+        t0=millis();
+        currentState = BothRED1; //trafic can return to normal  
+        //sensor reset
+        H1 = false;
+        H2 = false;
+      }
+      break;
+
+    default:
+      currentState = State0;
+    break;
+  }
+}
 }
 
 // Main loop of the µController
 void loop() {
+  Serial.println("Debut programme");
     // Check if a client is connected
     task_HTTPServer();
     
@@ -711,9 +696,13 @@ void loop() {
 
     // handle sensors 
     task_button();
-	//task_hall1();
-	//task_hall2();
-	
+    Serial.println("fin task 1");
+	  task_hall1();
+   Serial.println("fin task 1");
+	  task_hall2();
+    Serial.println("fin task2 debut MAE");
+    FiniteStateMachine();
+    Serial.println("fin MAE");
 	/* IMPORTANT
 		- les trois fonctions task des capteurs sont exécutées à chaque passage de LOOP (rythme elevé)
 		- La task du bouton permet de n'envoyer un message au serveur que s'il y a un front montant sur le bouton (i.e. appui)
