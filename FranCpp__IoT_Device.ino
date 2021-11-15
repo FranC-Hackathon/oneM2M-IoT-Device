@@ -703,12 +703,5 @@ void loop() {
     Serial.println("fin task2 debut MAE");
     FiniteStateMachine();
     Serial.println("fin MAE");
-	/* IMPORTANT
-		- les trois fonctions task des capteurs sont exécutées à chaque passage de LOOP (rythme elevé)
-		- La task du bouton permet de n'envoyer un message au serveur que s'il y a un front montant sur le bouton (i.e. appui)
-		- A vous de controler quand envoyer les valeurs des capteurs hall (1 et 2) pour ne pas bombarder le serveur
-			Par exemple, uniquement pour des valeurs significatives du capteur ou en insérant un Delay dans le fonction LOOP
-			Si vous optez pour un delat, notez qu'il faudra appyer longtemps sur le bouton pour qu'il soit pris en charge
-			Rappel : avec delay, tout le microcontrolleur est en pause (pas de lecture/sortie sur les broches)
-	*/
+
 }
